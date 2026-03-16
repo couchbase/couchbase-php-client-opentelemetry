@@ -1,0 +1,58 @@
+{
+  "name": "couchbase/couchbase-opentelemetry",
+  "description": "OpenTelemetry integration for the Couchbase PHP Client",
+  "type": "library",
+  "license": "Apache-2.0",
+  "keywords": ["couchbase", "opentelemetry", "tracing", "metrics", "observability"],
+  "homepage": "https://www.couchbase.com",
+  "authors": [
+    {
+      "name": "Couchbase, Inc.",
+      "email": "support@couchbase.com"
+    }
+  ],
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Matt-Woz/couchbase-php-client"
+    }
+  ],
+  "require": {
+    "php": ">=8.1",
+    "couchbase/couchbase": "dev-meter_exception",
+    "open-telemetry/api": "^1.0"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "open-telemetry/sdk": "^1.0",
+    "symfony/http-client": "^7.4",
+    "nyholm/psr7": "^1.8"
+  },
+  "autoload": {
+    "psr-4": {
+      "Couchbase\\OpenTelemetry\\": "src/Couchbase/OpenTelemetry/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Couchbase\\OpenTelemetry\\Tests\\": "tests/"
+    }
+  },
+  "support": {
+    "issues": "https://jira.issues.couchbase.com/browse/PCBC",
+    "source": "https://github.com/couchbase/couchbase-php-opentelemetry"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.0.x-dev"
+    }
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true,
+      "tbachert/spi": true
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}
