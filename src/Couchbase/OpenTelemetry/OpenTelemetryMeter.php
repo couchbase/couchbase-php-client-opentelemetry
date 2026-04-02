@@ -24,9 +24,9 @@ use Couchbase\Exception\MeterException;
 use Couchbase\Meter;
 use Couchbase\Observability\ObservabilityConstants;
 use Couchbase\ValueRecorder;
+use OpenTelemetry\API\Metrics\HistogramInterface;
 use OpenTelemetry\API\Metrics\MeterInterface;
 use OpenTelemetry\API\Metrics\MeterProviderInterface;
-use Throwable;
 
 /**
  * OpenTelemetry implementation of the Couchbase {@see Meter} interface.
@@ -59,21 +59,22 @@ use Throwable;
 class OpenTelemetryMeter implements Meter
 {
     private MeterInterface $meter;
-    /** @var array<string, \OpenTelemetry\API\Metrics\HistogramInterface> */
+
+    /** @var array<string, HistogramInterface> */
     private array $histogramCache = [];
 
     /**
      * Creates a new OpenTelemetry meter.
      *
-     * @param MeterProviderInterface $meterProvider The OpenTelemetry meter provider to use.
+     * @param MeterProviderInterface $meterProvider the OpenTelemetry meter provider to use
      *
-     * @throws MeterException If the meter cannot be created.
+     * @throws MeterException if the meter cannot be created
      */
     public function __construct(MeterProviderInterface $meterProvider)
     {
         try {
             $this->meter = $meterProvider->getMeter('com.couchbase.client/php');
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new MeterException(
                 sprintf('Failed to create OpenTelemetry meter: %s', $e->getMessage()),
                 0,
@@ -92,7 +93,7 @@ class OpenTelemetryMeter implements Meter
      * The reserved tag key {@see ObservabilityConstants::ATTR_RESERVED_UNIT} is
      * stripped from the attributes and used as the histogram unit instead.
      *
-     * @throws MeterException If the histogram instrument cannot be created.
+     * @throws MeterException if the histogram instrument cannot be created
      */
     public function valueRecorder(string $name, array $tags): ValueRecorder
     {
@@ -108,7 +109,7 @@ class OpenTelemetryMeter implements Meter
             }
 
             return new OpenTelemetryValueRecorder($this->histogramCache[$name], $tags, $unit);
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new MeterException(
                 sprintf('Failed to create OpenTelemetry histogram: %s', $e->getMessage()),
                 0,
@@ -117,9 +118,6 @@ class OpenTelemetryMeter implements Meter
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function close(): void
     {
         // Lifecycle management is the responsibility of the MeterProvider

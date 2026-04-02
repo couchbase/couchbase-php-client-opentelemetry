@@ -50,17 +50,11 @@ class OpenTelemetryRequestSpan implements RequestSpan
         return $this->wrapped;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function addTag(string $key, mixed $value): void
     {
         $this->wrapped->setAttribute($key, $value);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public function end(?int $endTimestampNanoseconds = null): void
     {
         $this->wrapped->end($endTimestampNanoseconds);

@@ -27,7 +27,8 @@
     "phpunit/phpunit": "^10.0",
     "open-telemetry/sdk": "^1.0",
     "symfony/http-client": "^7.4",
-    "nyholm/psr7": "^1.8"
+    "nyholm/psr7": "^1.8",
+    "friendsofphp/php-cs-fixer": "^3.0"
   },
   "autoload": {
     "psr-4": {
@@ -53,6 +54,20 @@
       "php-http/discovery": true,
       "tbachert/spi": true
     }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test:unit": "vendor/bin/phpunit --testsuite=unit",
+    "test:integration": "vendor/bin/phpunit --testsuite=integration",
+    "test:coverage": "vendor/bin/phpunit --coverage-html coverage/",
+    "test:integration:coverage": "vendor/bin/phpunit --testsuite=integration --coverage-html coverage/",
+    "lint": "find src tests -name '*.php' -print0 | xargs -0 -n1 php -l",
+    "cs-check": "vendor/bin/php-cs-fixer fix --dry-run --diff --verbose",
+    "cs-fix": "vendor/bin/php-cs-fixer fix --diff --verbose",
+    "quality": [
+      "@lint",
+      "@cs-check"
+    ]
   },
   "minimum-stability": "dev",
   "prefer-stable": true

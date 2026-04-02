@@ -42,6 +42,11 @@ use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ *
+ * @coversNothing
+ */
 class OpenTelemetryTest extends TestCase
 {
     private SpanInMemoryExporter $spanExporter;
@@ -67,7 +72,7 @@ class OpenTelemetryTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->connectionString = getenv('TEST_CONNECTION_STRING') ?: 'couchbase://192.168.106.130';
+        $this->connectionString = getenv('TEST_CONNECTION_STRING') ?: 'couchbase://127.0.0.1';
         $this->bucketName = getenv('TEST_BUCKET') ?: 'default';
         $this->username = getenv('TEST_USERNAME') ?: 'Administrator';
         $this->password = getenv('TEST_PASSWORD') ?: 'password';
@@ -83,7 +88,8 @@ class OpenTelemetryTest extends TestCase
         $this->metricReader = new ExportingReader($this->metricExporter);
         $this->meterProvider = MeterProvider::builder()
             ->addReader($this->metricReader)
-            ->build();
+            ->build()
+        ;
         $this->meter = new OpenTelemetryMeter($this->meterProvider);
 
         $options = new ClusterOptions();
@@ -103,93 +109,9 @@ class OpenTelemetryTest extends TestCase
         $this->meterProvider->shutdown();
     }
 
-    private function assertOtelSpan(
-        SpanDataInterface $spanData,
-        string $name,
-        array $attributes = [],
-        ?string $parentSpanId = null,
-        string $statusCode = StatusCode::STATUS_UNSET,
-    ): void {
-        $this->assertSame($name, $spanData->getName());
-        $this->assertSame(SpanKind::KIND_CLIENT, $spanData->getKind());
-        $this->assertSame($statusCode, $spanData->getStatus()->getCode());
-
-        if ($parentSpanId === null) {
-            $this->assertTrue(
-                hexdec($spanData->getParentSpanId()) === 0,
-                "Expected parent span ID to be zero"
-            );
-        } else {
-            $this->assertSame($parentSpanId, $spanData->getParentSpanId());
-        }
-
-        foreach ($attributes as $key => $value) {
-            if ($value === null) {
-                $this->assertTrue(
-                    $spanData->getAttributes()->has($key),
-                    "Expected attribute {$key} to be present"
-                );
-            } else {
-                $this->assertSame(
-                    $value,
-                    $spanData->getAttributes()->get($key),
-                    "Expected attribute {$key} to have value {$value}"
-                );
-            }
-        }
-    }
-
-    private function uniqId(string $prefix): string
-    {
-        return sprintf('%s_%s', $prefix, bin2hex(random_bytes(8)));
-    }
-
-    private function supportsClusterLabels(): bool
-    {
-        return version_compare($this->serverVersion, '7.6.4', '>=');
-    }
-
-    private function fetchClusterLabels(): array
-    {
-        if ($this->clusterLabels !== null) {
-            return $this->clusterLabels;
-        }
-
-        $parsed = parse_url($this->connectionString);
-        $host = $parsed['host'] ?? '192.168.106.130';
-        $scheme = ($parsed['scheme'] ?? '') === 'couchbases' ? 'https' : 'http';
-        $port = $scheme === 'https' ? 18091 : 8091;
-
-        $url = sprintf('%s://%s:%d/pools/default/nodeServices', $scheme, $host, $port);
-        $context = stream_context_create([
-            'http' => [
-                'header' => 'Authorization: Basic ' . base64_encode($this->username . ':' . $this->password),
-            ],
-        ]);
-        $response = file_get_contents($url, false, $context);
-        $body = json_decode($response, true);
-
-        $this->clusterLabels = [
-            'cluster_name' => $body['clusterName'] ?? '',
-            'cluster_uuid' => $body['clusterUUID'] ?? '',
-        ];
-
-        return $this->clusterLabels;
-    }
-
-    private function clusterName(): string
-    {
-        return $this->fetchClusterLabels()['cluster_name'];
-    }
-
-    private function clusterUuid(): string
-    {
-        return $this->fetchClusterLabels()['cluster_uuid'];
-    }
-
     public function testOpenTelemetryTracer(): void
     {
-        $parentSpan = $this->tracer->requestSpan("parent_span");
+        $parentSpan = $this->tracer->requestSpan('parent_span');
 
         $opts = new UpsertOptions();
         $opts->parentSpan($parentSpan);
@@ -199,7 +121,7 @@ class OpenTelemetryTest extends TestCase
 
         $parentSpan->end();
         $spans = $this->spanExporter->getSpans();
-        usort($spans, fn($a, $b) => $a->getStartEpochNanos() <=> $b->getStartEpochNanos());
+        usort($spans, fn ($a, $b) => $a->getStartEpochNanos() <=> $b->getStartEpochNanos());
 
         $this->assertOtelSpan(
             $spans[0],
@@ -212,7 +134,7 @@ class OpenTelemetryTest extends TestCase
             'db.namespace' => $this->bucketName,
             'couchbase.scope.name' => '_default',
             'couchbase.collection.name' => '_default',
-      //      'couchbase.retries' => null,
+            //      'couchbase.retries' => null,
         ];
         if ($this->supportsClusterLabels()) {
             $expectedAttributes['couchbase.cluster.name'] = $this->clusterName();
@@ -241,27 +163,26 @@ class OpenTelemetryTest extends TestCase
             attributes: $expectedAttributes,
             parentSpanId: $spans[1]->getSpanId(),
         );
-// TODO: Uncomment once done
-//        $expectedAttributes = [
-//            'db.system.name' => 'couchbase',
-//            'network.peer.address' => null,
-//            'network.peer.port' => null,
-//            'network.transport' => 'tcp',
-//            'server.address' => null,
-//            'server.port' => null,
-//            'couchbase.local_id' => null,
-//        ];
-//        if ($this->supportsClusterLabels()) {
-//            $expectedAttributes['couchbase.cluster.name'] = $this->clusterName();
-//            $expectedAttributes['couchbase.cluster.uuid'] = $this->clusterUuid();
-//        }
-//
-//        $this->assertOtelSpan(
-//            $spans[3],
-//            'dispatch_to_server',
-//            attributes: $expectedAttributes,
-//            parentSpanId: $spans[1]->getSpanId(),
-//        );
+        $expectedAttributes = [
+            'db.system.name' => 'couchbase',
+            'network.peer.address' => null,
+            'network.peer.port' => null,
+            'network.transport' => 'tcp',
+            'server.address' => null,
+            'server.port' => null,
+            'couchbase.local_id' => null,
+        ];
+        if ($this->supportsClusterLabels()) {
+            $expectedAttributes['couchbase.cluster.name'] = $this->clusterName();
+            $expectedAttributes['couchbase.cluster.uuid'] = $this->clusterUuid();
+        }
+
+        $this->assertOtelSpan(
+            $spans[3],
+            'dispatch_to_server',
+            attributes: $expectedAttributes,
+            parentSpanId: $spans[1]->getSpanId(),
+        );
     }
 
     public function testOpenTelemetryMeter(): void
@@ -307,12 +228,130 @@ class OpenTelemetryTest extends TestCase
                 case 0:
                     $this->assertSame('get', $point->attributes->get('db.operation.name'));
                     $this->assertSame('DocumentNotFound', $point->attributes->get('error.type'));
+
                     break;
+
                 case 1:
                     $this->assertSame('insert', $point->attributes->get('db.operation.name'));
                     $this->assertNull($point->attributes->get('error.type'));
+
                     break;
             }
         }
+    }
+
+    private function assertOtelSpan(
+        SpanDataInterface $spanData,
+        string $name,
+        array $attributes = [],
+        ?string $parentSpanId = null,
+        string $statusCode = StatusCode::STATUS_UNSET,
+    ): void {
+        $this->assertSame($name, $spanData->getName());
+        $this->assertSame(SpanKind::KIND_CLIENT, $spanData->getKind());
+        $this->assertSame($statusCode, $spanData->getStatus()->getCode());
+
+        if (null === $parentSpanId) {
+            $this->assertTrue(
+                0 === hexdec($spanData->getParentSpanId()),
+                'Expected parent span ID to be zero'
+            );
+        } else {
+            $this->assertSame($parentSpanId, $spanData->getParentSpanId());
+        }
+
+        foreach ($attributes as $key => $value) {
+            if (null === $value) {
+                $this->assertTrue(
+                    $spanData->getAttributes()->has($key),
+                    "Expected attribute {$key} to be present"
+                );
+            } else {
+                $this->assertSame(
+                    $value,
+                    $spanData->getAttributes()->get($key),
+                    "Expected attribute {$key} to have value {$value}"
+                );
+            }
+        }
+    }
+
+    private function uniqId(string $prefix): string
+    {
+        return sprintf('%s_%s', $prefix, bin2hex(random_bytes(8)));
+    }
+
+    private function supportsClusterLabels(): bool
+    {
+        // Check version requirement and ensure we could fetch cluster metadata
+        if (!version_compare($this->serverVersion, '7.6.4', '>=')) {
+            return false;
+        }
+
+        $labels = $this->fetchClusterLabels();
+
+        return !empty($labels['cluster_name']) && !empty($labels['cluster_uuid']);
+    }
+
+    private function fetchClusterLabels(): array
+    {
+        if (null !== $this->clusterLabels) {
+            return $this->clusterLabels;
+        }
+
+        $parsed = parse_url($this->connectionString);
+        $hostString = $parsed['host'];
+
+        // Handle multiple hosts (comma-separated) - use the first one
+        $hosts = explode(',', $hostString);
+        $host = trim($hosts[0]);
+
+        $scheme = ($parsed['scheme'] ?? '') === 'couchbases' ? 'https' : 'http';
+        $port = 'https' === $scheme ? 18091 : 8091;
+
+        $url = sprintf('%s://%s:%d/pools/default/nodeServices', $scheme, $host, $port);
+        $context = stream_context_create([
+            'http' => [
+                'header' => 'Authorization: Basic '.base64_encode($this->username.':'.$this->password),
+                'timeout' => 10,
+                'ignore_errors' => true,
+            ],
+        ]);
+
+        $response = file_get_contents($url, false, $context);
+
+        if (false === $response) {
+            // Fallback when cluster metadata is not accessible
+            $this->clusterLabels = [
+                'cluster_name' => '',
+                'cluster_uuid' => '',
+            ];
+        } else {
+            $body = json_decode($response, true);
+            if (JSON_ERROR_NONE !== json_last_error()) {
+                // Fallback when JSON parsing fails
+                $this->clusterLabels = [
+                    'cluster_name' => '',
+                    'cluster_uuid' => '',
+                ];
+            } else {
+                $this->clusterLabels = [
+                    'cluster_name' => $body['clusterName'] ?? '',
+                    'cluster_uuid' => $body['clusterUUID'] ?? '',
+                ];
+            }
+        }
+
+        return $this->clusterLabels;
+    }
+
+    private function clusterName(): string
+    {
+        return $this->fetchClusterLabels()['cluster_name'];
+    }
+
+    private function clusterUuid(): string
+    {
+        return $this->fetchClusterLabels()['cluster_uuid'];
     }
 }

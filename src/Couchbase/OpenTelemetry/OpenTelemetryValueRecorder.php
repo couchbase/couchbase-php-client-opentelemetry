@@ -33,16 +33,17 @@ use OpenTelemetry\API\Metrics\HistogramInterface;
 class OpenTelemetryValueRecorder implements ValueRecorder
 {
     private HistogramInterface $histogram;
-    /** @var array<non-empty-string, string|bool|float|int|array|null> */
+
+    /** @var array<non-empty-string, null|array|bool|float|int|string> */
     private array $attributes;
     private ?string $unit;
 
     /**
-     * @param HistogramInterface $histogram  The underlying OTel histogram instrument.
-     * @param array<non-empty-string, string|bool|float|int|array|null> $attributes
-     *        Metric attributes / dimensions (the tags passed by the SDK, with the
-     *        reserved {@see ObservabilityConstants::ATTR_RESERVED_UNIT} key removed).
-     * @param string|null $unit  The unit string extracted from the tags (e.g. {@code "s"}).
+     * @param HistogramInterface                                        $histogram  the underlying OTel histogram instrument
+     * @param array<non-empty-string, null|array|bool|float|int|string> $attributes
+     *                                                                              Metric attributes / dimensions (the tags passed by the SDK, with the
+     *                                                                              reserved {@see ObservabilityConstants::ATTR_RESERVED_UNIT} key removed)
+     * @param null|string                                               $unit       The unit string extracted from the tags (e.g. {@code "s"}).
      */
     public function __construct(HistogramInterface $histogram, array $attributes, ?string $unit = null)
     {

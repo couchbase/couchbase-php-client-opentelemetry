@@ -27,7 +27,6 @@ use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
-use Throwable;
 
 /**
  * OpenTelemetry implementation of the Couchbase {@see RequestTracer} interface.
@@ -60,15 +59,15 @@ class OpenTelemetryRequestTracer implements RequestTracer
     /**
      * Creates a new OpenTelemetry request tracer.
      *
-     * @param TracerProviderInterface $tracerProvider The OpenTelemetry tracer provider to use.
+     * @param TracerProviderInterface $tracerProvider the OpenTelemetry tracer provider to use
      *
-     * @throws TracerException If the tracer cannot be created.
+     * @throws TracerException if the tracer cannot be created
      */
     public function __construct(TracerProviderInterface $tracerProvider)
     {
         try {
             $this->tracer = $tracerProvider->getTracer('com.couchbase.client/php');
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new TracerException(
                 sprintf('Failed to create OpenTelemetry tracer: %s', $e->getMessage()),
                 0,
@@ -83,14 +82,15 @@ class OpenTelemetryRequestTracer implements RequestTracer
      * Creates a new OpenTelemetry span as a CLIENT span. If a parent
      * {@see OpenTelemetryRequestSpan} is provided, the new span will be a child of it.
      *
-     * @throws TracerException If the span cannot be created.
+     * @throws TracerException if the span cannot be created
      */
     public function requestSpan(string $name, ?RequestSpan $parent = null, ?int $startTimestampNanoseconds = null): RequestSpan
     {
         try {
             $spanBuilder = $this->tracer
                 ->spanBuilder($name)
-                ->setSpanKind(SpanKind::KIND_CLIENT);
+                ->setSpanKind(SpanKind::KIND_CLIENT)
+            ;
 
             if ($parent instanceof OpenTelemetryRequestSpan) {
                 // Build a Context that carries the parent OTel span so the
@@ -103,12 +103,12 @@ class OpenTelemetryRequestTracer implements RequestTracer
                 $spanBuilder->setParent(false);
             }
 
-            if ($startTimestampNanoseconds !== null) {
+            if (null !== $startTimestampNanoseconds) {
                 $spanBuilder->setStartTimestamp($startTimestampNanoseconds);
             }
 
             return new OpenTelemetryRequestSpan($spanBuilder->startSpan());
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             throw new TracerException(
                 sprintf('Failed to create OpenTelemetry span: %s', $e->getMessage()),
                 0,
@@ -117,10 +117,5 @@ class OpenTelemetryRequestTracer implements RequestTracer
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public function close(): void
-    {
-    }
+    public function close(): void {}
 }

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * inventory_with_opentelemetry — Couchbase PHP SDK + OpenTelemetry example
+ * inventory_with_opentelemetry — Couchbase PHP SDK + OpenTelemetry example.
  *
  * Demonstrates how to instrument a Couchbase PHP application with OpenTelemetry
  * distributed tracing and metrics, and how to ship both signals to the bundled
@@ -151,22 +151,24 @@
 
 declare(strict_types=1);
 
-require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__.'/../vendor/autoload.php';
 
 use Couchbase\Cluster;
 use Couchbase\ClusterOptions;
 use Couchbase\GetOptions;
-use Couchbase\UpsertOptions;
 use Couchbase\OpenTelemetry\OpenTelemetryMeter;
 use Couchbase\OpenTelemetry\OpenTelemetryRequestSpan;
 use Couchbase\OpenTelemetry\OpenTelemetryRequestTracer;
+use Couchbase\UpsertOptions;
+use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\API\Globals;
 use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\Contrib\Otlp\MetricExporter;
 use OpenTelemetry\Contrib\Otlp\SpanExporter;
-use OpenTelemetry\SDK\Common\Export\Http\PsrTransportFactory;
-use OpenTelemetry\API\Common\Time\Clock;
 use OpenTelemetry\SDK\Common\Attribute\Attributes;
+use OpenTelemetry\SDK\Common\Export\Http\PsrTransportFactory;
+use OpenTelemetry\SDK\Metrics\MeterProvider;
 use OpenTelemetry\SDK\Metrics\MeterProviderBuilder;
 use OpenTelemetry\SDK\Metrics\MetricReader\ExportingReader;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
@@ -234,13 +236,13 @@ class ProgramConfig
         $config->verbose = in_array(strtolower(getenv('VERBOSE') ?: ''), TRUTHY_VALUES);
         $config->otelVerbose = in_array(strtolower(getenv('OTEL_VERBOSE') ?: ''), TRUTHY_VALUES);
 
-        $config->numIterations = (int)(getenv('NUM_ITERATIONS') ?: 1000);
+        $config->numIterations = (int) (getenv('NUM_ITERATIONS') ?: 1000);
 
         $config->tracesEndpoint = getenv('OTEL_TRACES_ENDPOINT') ?: 'http://localhost:4318/v1/traces';
         $config->metricsEndpoint = getenv('OTEL_METRICS_ENDPOINT') ?: 'http://localhost:4318/v1/metrics';
 
-        $config->metricsReaderExportIntervalMs = (int)(getenv('OTEL_METRICS_READER_EXPORT_INTERVAL_MS') ?: 5000);
-        $config->metricsReaderExportTimeoutMs = (int)(getenv('OTEL_METRICS_READER_EXPORT_TIMEOUT_MS') ?: 10000);
+        $config->metricsReaderExportIntervalMs = (int) (getenv('OTEL_METRICS_READER_EXPORT_INTERVAL_MS') ?: 5000);
+        $config->metricsReaderExportTimeoutMs = (int) (getenv('OTEL_METRICS_READER_EXPORT_TIMEOUT_MS') ?: 10000);
 
         $config->histogramBoundaries = [
             0.0001,  // 100 µs
@@ -258,24 +260,24 @@ class ProgramConfig
 
     public function dump(): void
     {
-        echo "CONNECTION_STRING: " . $this->connectionString . "\n";
-        echo "        USER_NAME: " . $this->userName . "\n";
+        echo 'CONNECTION_STRING: '.$this->connectionString."\n";
+        echo '        USER_NAME: '.$this->userName."\n";
         echo "         PASSWORD: [HIDDEN]\n";
-        echo "      BUCKET_NAME: " . $this->bucketName . "\n";
-        echo "       SCOPE_NAME: " . $this->scopeName . "\n";
-        echo "  COLLECTION_NAME: " . $this->collectionName . "\n";
-        echo "          VERBOSE: " . ($this->verbose ? 'true' : 'false') . "\n";
-        echo "     OTEL_VERBOSE: " . ($this->otelVerbose ? 'true' : 'false') . "\n";
-        echo "   NUM_ITERATIONS: " . $this->numIterations . "\n";
-        echo "          PROFILE: " . ($this->profile ? $this->profile : '[NONE]') . "\n";
+        echo '      BUCKET_NAME: '.$this->bucketName."\n";
+        echo '       SCOPE_NAME: '.$this->scopeName."\n";
+        echo '  COLLECTION_NAME: '.$this->collectionName."\n";
+        echo '          VERBOSE: '.($this->verbose ? 'true' : 'false')."\n";
+        echo '     OTEL_VERBOSE: '.($this->otelVerbose ? 'true' : 'false')."\n";
+        echo '   NUM_ITERATIONS: '.$this->numIterations."\n";
+        echo '          PROFILE: '.($this->profile ? $this->profile : '[NONE]')."\n";
         echo "\n";
 
-        echo "        OTEL_TRACES_ENDPOINT: " . $this->tracesEndpoint . "\n";
+        echo '        OTEL_TRACES_ENDPOINT: '.$this->tracesEndpoint."\n";
         echo "\n";
-        echo "       OTEL_METRICS_ENDPOINT: " . $this->metricsEndpoint . "\n";
-        echo "  OTEL_METRICS_READER_EXPORT_INTERVAL_MS: " . $this->metricsReaderExportIntervalMs . "\n";
-        echo "  OTEL_METRICS_READER_EXPORT_TIMEOUT_MS: " . $this->metricsReaderExportTimeoutMs . "\n";
-        echo "  OTEL_METRICS_HISTOGRAM_BOUNDARIES: [" . implode(", ", $this->histogramBoundaries) . "]\n";
+        echo '       OTEL_METRICS_ENDPOINT: '.$this->metricsEndpoint."\n";
+        echo '  OTEL_METRICS_READER_EXPORT_INTERVAL_MS: '.$this->metricsReaderExportIntervalMs."\n";
+        echo '  OTEL_METRICS_READER_EXPORT_TIMEOUT_MS: '.$this->metricsReaderExportTimeoutMs."\n";
+        echo '  OTEL_METRICS_HISTOGRAM_BOUNDARIES: ['.implode(', ', $this->histogramBoundaries)."]\n";
         echo "\n";
     }
 }
@@ -357,7 +359,7 @@ function setupOpenTelemetryTracer(ProgramConfig $config): TracerProvider
     );
 
     // Register as the process-wide global provider so Globals::tracerProvider() works anywhere.
-    Globals::registerInitializer(fn() => $tracerProvider);
+    Globals::registerInitializer(fn () => $tracerProvider);
 
     return $tracerProvider;
 }
@@ -381,7 +383,7 @@ function setupOpenTelemetryTracer(ProgramConfig $config): TracerProvider
 //
 // Returns the MeterProvider so the caller can call forceFlush/shutdown before
 // exit and guarantee all buffered metric data points are flushed to the collector.
-function setupOpenTelemetryMeter(ProgramConfig $config): \OpenTelemetry\SDK\Metrics\MeterProvider
+function setupOpenTelemetryMeter(ProgramConfig $config): MeterProvider
 {
     // Resource is stamped on every exported metric batch so Prometheus can identify
     // which process produced the data.
@@ -407,7 +409,7 @@ function setupOpenTelemetryMeter(ProgramConfig $config): \OpenTelemetry\SDK\Metr
     // into the OTel histogram. The OpenTelemetry SDK's built-in default boundaries
     // are calibrated for millisecond values and are therefore orders of magnitude
     // too large for second-valued Couchbase histograms.
-    echo "Using histogram boundaries: [" . implode(", ", $config->histogramBoundaries) . "]\n";
+    echo 'Using histogram boundaries: ['.implode(', ', $config->histogramBoundaries)."]\n";
 
     // For production, create a proper ViewRegistry with histogram boundaries
     // For this demo, we'll create a basic MeterProvider
@@ -422,12 +424,11 @@ function setupOpenTelemetryMeter(ProgramConfig $config): \OpenTelemetry\SDK\Metr
     // --- MeterProvider assembly ---
     // MeterProvider is the factory that creates Meter objects; both application code
     // and the Couchbase SDK adapter call getMeter() on it to obtain a scoped meter.
-    $meterProvider = (new MeterProviderBuilder())
+    return (new MeterProviderBuilder())
         ->setResource($resource)
         ->addReader($metricReader)
-        ->build();
-
-    return $meterProvider;
+        ->build()
+    ;
 }
 
 // ============================================================================
@@ -437,9 +438,9 @@ function setupOpenTelemetryMeter(ProgramConfig $config): \OpenTelemetry\SDK\Metr
 function printProgress(int $iteration, int $totalIterations, int $errorCount, ?string $lastError): void
 {
     $done = $iteration + 1;
-    $pct = (int)($done * 100 / $totalIterations);
+    $pct = (int) ($done * 100 / $totalIterations);
     $barWidth = 30;
-    $filled = (int)($pct * $barWidth / 100);
+    $filled = (int) ($pct * $barWidth / 100);
     $bar = str_repeat('=', $filled);
     if ($filled < $barWidth) {
         $bar .= '>';
@@ -447,10 +448,10 @@ function printProgress(int $iteration, int $totalIterations, int $errorCount, ?s
     }
 
     $line = sprintf("\r[%s] %3d%% %d/%d  errors: %d", $bar, $pct, $done, $totalIterations, $errorCount);
-    if ($lastError !== null) {
-        $line .= "  last error: " . $lastError;
+    if (null !== $lastError) {
+        $line .= '  last error: '.$lastError;
     }
-    $line .= "   ";
+    $line .= '   ';
     echo $line;
 }
 
@@ -515,7 +516,8 @@ function main(): int
         $cluster = Cluster::connect($config->connectionString, $options);
         $collection = $cluster->bucket($config->bucketName)
             ->scope($config->scopeName)
-            ->collection($config->collectionName);
+            ->collection($config->collectionName)
+        ;
 
         // --- Per-iteration diagnostic metric ---
         // Instruments must be created once and reused across recordings; creating a
@@ -541,13 +543,14 @@ function main(): int
         $errorCount = 0;
         $lastError = null;
 
-        for ($iteration = 0; $iteration < $config->numIterations; $iteration++) {
-            $documentId = "item::WIDGET-" . $iteration;
+        for ($iteration = 0; $iteration < $config->numIterations; ++$iteration) {
+            $documentId = 'item::WIDGET-'.$iteration;
             $iterStart = hrtime(true);
 
             $topSpan = $tracer->spanBuilder('update-inventory')
                 ->setSpanKind(SpanKind::KIND_CLIENT)
-                ->startSpan();
+                ->startSpan()
+            ;
 
             // Activate the span in the current context so any OTel-instrumented library
             // called from this scope that does automatic context propagation will
@@ -575,8 +578,8 @@ function main(): int
 
                     $collection->upsert($documentId, $item, UpsertOptions::build()->parentSpan($cbParent));
                 } catch (Exception $e) {
-                    $errorCount++;
-                    $lastError = 'upsert: ' . $e->getMessage();
+                    ++$errorCount;
+                    $lastError = 'upsert: '.$e->getMessage();
                 }
 
                 // --- Get operation ---
@@ -586,15 +589,15 @@ function main(): int
                 try {
                     $collection->get($documentId, GetOptions::build()->parentSpan($cbParent));
                 } catch (Exception $e) {
-                    $errorCount++;
-                    $lastError = 'get: ' . $e->getMessage();
+                    ++$errorCount;
+                    $lastError = 'get: '.$e->getMessage();
                 }
 
                 printProgress($iteration, $config->numIterations, $errorCount, $lastError);
 
                 // Mark the root span successful and close it. The SDK child spans (upsert,
                 // get) are already ended by the time collection->upsert/get return.
-                $topSpan->setStatus(\OpenTelemetry\API\Trace\StatusCode::STATUS_OK);
+                $topSpan->setStatus(StatusCode::STATUS_OK);
             } finally {
                 $topSpan->end();
                 $scope->detach();
@@ -625,7 +628,7 @@ function main(): int
         // The metric carries the service.name="inventory-service" resource attribute so
         // you can filter by {job="inventory-service"} or similar in Grafana.
         $elapsedMs = (hrtime(true) - $demoStart) / 1_000_000;
-        echo "Demo run duration: " . round($elapsedMs) . " ms\n";
+        echo 'Demo run duration: '.round($elapsedMs)." ms\n";
 
         $runDuration = $appMeter->createHistogram(
             'inventory_demo_run_duration',
@@ -647,7 +650,8 @@ function main(): int
 
         return 0;
     } catch (Exception $e) {
-        echo "Unable to connect to the cluster: " . $e->getMessage() . "\n";
+        echo 'Unable to connect to the cluster: '.$e->getMessage()."\n";
+
         return 1;
     }
 }
