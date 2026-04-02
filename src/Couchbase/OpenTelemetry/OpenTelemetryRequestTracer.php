@@ -124,4 +124,3 @@ class OpenTelemetryRequestTracer implements RequestTracer
     {
     }
 }
-

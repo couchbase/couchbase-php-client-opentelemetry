@@ -85,5 +85,3 @@ class OpenTelemetryRequestSpan implements RequestSpan
         $this->wrapped->setStatus($otelStatusCode);
     }
 }
-
-

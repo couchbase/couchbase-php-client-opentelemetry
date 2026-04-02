@@ -69,4 +69,3 @@ class OpenTelemetryValueRecorder implements ValueRecorder
         $this->histogram->record($converted, $this->attributes);
     }
 }
-
