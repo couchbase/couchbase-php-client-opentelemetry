@@ -14,12 +14,12 @@
   "repositories": [
     {
       "type": "vcs",
-      "url": "https://github.com/Matt-Woz/couchbase-php-client"
+      "url": "https://github.com/couchbase/couchbase-php-client"
     }
   ],
   "require": {
-    "php": ">=8.1",
-    "couchbase/couchbase": "dev-meter_exception",
+    "php": ">=8.2",
+    "couchbase/couchbase": "^4.5",
     "open-telemetry/api": "^1.0"
   },
   "require-dev": {
