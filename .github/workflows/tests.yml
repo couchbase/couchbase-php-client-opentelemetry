@@ -26,7 +26,7 @@ jobs:
     strategy:
       matrix:
         php: ['8.2', '8.3', '8.4', '8.5']
-        server: ['7.6.3', '8.0.0']
+        server: ['7.6.10', '8.0.1']
 
     name: PHP ${{ matrix.php }} - Couchbase ${{ matrix.server }}
 
@@ -44,42 +44,17 @@ jobs:
 
     - name: Install Couchbase PHP extension
       run: |
-        # Build dynamic download URL from matrix variables
-        COUCHBASE_VERSION="${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}"
-        PHP_VERSION="${{ matrix.php }}"
-        DOWNLOAD_URL="https://packages.couchbase.com/clients/php/couchbase-${COUCHBASE_VERSION}-php${PHP_VERSION}-nts-linux-x86_64.tgz"
-
-        echo "Downloading Couchbase extension from: $DOWNLOAD_URL"
-        curl -L -o couchbase-extension.tgz "$DOWNLOAD_URL"
-
-        # Extract the archive
-        tar -xzf couchbase-extension.tgz
-        EXTRACTED_DIR="couchbase-${COUCHBASE_VERSION}-php${PHP_VERSION}-nts-linux-x86_64"
-
-        # Get PHP extension and include directories
-        EXTENSION_DIR=$(php -i | grep "^extension_dir" | cut -d' ' -f3)
-        INCLUDE_PATH=$(php -i | grep "^include_path" | cut -d' ' -f3 | cut -d':' -f2)
-
-        echo "Extension directory: $EXTENSION_DIR"
-        echo "Include path: $INCLUDE_PATH"
-
-        # Install the extension binary
-        sudo cp "${EXTRACTED_DIR}/couchbase.so" "$EXTENSION_DIR/"
-
-        # Install PHP class files
-        sudo mkdir -p "$INCLUDE_PATH/Couchbase"
-        sudo cp -r "${EXTRACTED_DIR}/Couchbase/"* "$INCLUDE_PATH/Couchbase/"
-
-        # Enable the extension
-        PHP_INI_PATH=$(php --ini | grep "Loaded Configuration" | cut -d: -f2 | tr -d ' "')
-        echo "PHP INI path: $PHP_INI_PATH"
-        echo "extension=couchbase.so" | sudo tee -a "$PHP_INI_PATH"
-
-        # Verify installation
-        php -m | grep couchbase
-
-        # Clean up extracted files to avoid PHP CS Fixer scanning them
-        rm -rf couchbase-extension.tgz "${EXTRACTED_DIR}"
+        # Same steps as docker/Dockerfile in couchbase/couchbase-php-client. The library classes come
+        # from the couchbase/couchbase Composer package, so only the module and its INI are installed.
+        ARCHIVE="couchbase-${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}-php${{ matrix.php }}-nts-linux-x86_64"
+        curl -fsSL -o "${ARCHIVE}.tgz" "https://github.com/couchbase/couchbase-php-client/releases/download/${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}/${ARCHIVE}.tgz"
+        tar -xzf "${ARCHIVE}.tgz"
+        EXTENSION_DIR=$(php -r 'echo ini_get("extension_dir");')
+        SCAN_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
+        test -d "${EXTENSION_DIR}" && test -d "${SCAN_DIR}"
+        sudo cp "${ARCHIVE}/couchbase.so" "${EXTENSION_DIR}/"
+        sudo cp "${ARCHIVE}/90-couchbase.ini" "${SCAN_DIR}/"
+        php -m | grep -qx couchbase
 
     - name: Get composer cache directory
       id: composer-cache
@@ -150,7 +125,7 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
-      if: matrix.php == '8.3' && matrix.server == '8.0.0'
+      if: matrix.php == '8.3' && matrix.server == '8.0.1'
       with:
         file: ./coverage.xml
         flags: integration
@@ -177,42 +152,18 @@ jobs:
 
     - name: Install Couchbase PHP extension
       run: |
-        # Build dynamic download URL (using PHP 8.3 for lint job)
-        COUCHBASE_VERSION="${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}"
-        PHP_VERSION="8.3"
-        DOWNLOAD_URL="https://packages.couchbase.com/clients/php/couchbase-${COUCHBASE_VERSION}-php${PHP_VERSION}-nts-linux-x86_64.tgz"
-
-        echo "Downloading Couchbase extension from: $DOWNLOAD_URL"
-        curl -L -o couchbase-extension.tgz "$DOWNLOAD_URL"
-
-        # Extract the archive
-        tar -xzf couchbase-extension.tgz
-        EXTRACTED_DIR="couchbase-${COUCHBASE_VERSION}-php${PHP_VERSION}-nts-linux-x86_64"
-
-        # Get PHP extension and include directories
-        EXTENSION_DIR=$(php -i | grep "^extension_dir" | cut -d' ' -f3)
-        INCLUDE_PATH=$(php -i | grep "^include_path" | cut -d' ' -f3 | cut -d':' -f2)
-
-        echo "Extension directory: $EXTENSION_DIR"
-        echo "Include path: $INCLUDE_PATH"
-
-        # Install the extension binary
-        sudo cp "${EXTRACTED_DIR}/couchbase.so" "$EXTENSION_DIR/"
-
-        # Install PHP class files
-        sudo mkdir -p "$INCLUDE_PATH/Couchbase"
-        sudo cp -r "${EXTRACTED_DIR}/Couchbase/"* "$INCLUDE_PATH/Couchbase/"
-
-        # Enable the extension
-        PHP_INI_PATH=$(php --ini | grep "Loaded Configuration" | cut -d: -f2 | tr -d ' "')
-        echo "PHP INI path: $PHP_INI_PATH"
-        echo "extension=couchbase.so" | sudo tee -a "$PHP_INI_PATH"
-
-        # Verify installation
-        php -m | grep couchbase
-
-        # Clean up extracted files to avoid PHP CS Fixer scanning them
-        rm -rf couchbase-extension.tgz "${EXTRACTED_DIR}"
+        # Same steps as docker/Dockerfile in couchbase/couchbase-php-client. The library classes come
+        # from the couchbase/couchbase Composer package, so only the module and its INI are installed.
+        ARCHIVE="couchbase-${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}-php8.3-nts-linux-x86_64"
+        curl -fsSL -o "${ARCHIVE}.tgz" "https://github.com/couchbase/couchbase-php-client/releases/download/${{ env.COUCHBASE_PHP_EXTENSION_VERSION }}/${ARCHIVE}.tgz"
+        tar -xzf "${ARCHIVE}.tgz"
+        EXTENSION_DIR=$(php -r 'echo ini_get("extension_dir");')
+        SCAN_DIR=$(php -r 'echo PHP_CONFIG_FILE_SCAN_DIR;')
+        test -d "${EXTENSION_DIR}" && test -d "${SCAN_DIR}"
+        sudo cp "${ARCHIVE}/couchbase.so" "${EXTENSION_DIR}/"
+        sudo cp "${ARCHIVE}/90-couchbase.ini" "${SCAN_DIR}/"
+        rm -rf "${ARCHIVE}.tgz" "${ARCHIVE}"
+        php -m | grep -qx couchbase
 
     - name: Install dependencies
       run: composer install --prefer-dist --no-progress --no-interaction
