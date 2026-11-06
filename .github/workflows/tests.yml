@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      COUCHBASE_PHP_EXTENSION_VERSION: "4.5.0"
+      COUCHBASE_PHP_EXTENSION_VERSION: "4.6.0"
 
     strategy:
       matrix:
@@ -137,7 +137,7 @@ jobs:
     name: Code Quality
 
     env:
-      COUCHBASE_PHP_EXTENSION_VERSION: "4.5.0"
+      COUCHBASE_PHP_EXTENSION_VERSION: "4.6.0"
 
     steps:
     - name: Checkout code
