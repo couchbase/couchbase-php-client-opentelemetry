@@ -8,7 +8,7 @@ ecosystem.
 ## Requirements
 
 - PHP 8.2+
-- `couchbase/couchbase` ^4.5
+- `couchbase/couchbase` ^4.6
 - `open-telemetry/api` ^1.0
 
 ## Installation
